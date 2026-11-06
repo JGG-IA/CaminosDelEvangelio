@@ -193,6 +193,7 @@ button.pr{background:none;cursor:pointer;text-align:left;font:inherit;color:var(
 .ytbox iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .ytbox.ytoff{display:grid;place-items:center;padding:16px;background:#0b1114;border:1px dashed var(--line2)}.ytbox.ytoff p{margin:0;font-size:13.5px;color:var(--muted);text-align:center}
 .ytmsg:empty{display:none}
+.ytopen{display:inline-block;margin-top:6px;color:#fff;background:#c4302b;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700;text-decoration:none}
 .ytdiag{font-family:var(--f-mono);font-size:10.5px;color:var(--faint)}
 .ytsub{display:inline-flex;align-items:center;gap:8px;margin-top:10px;background:#c4302b;color:#fff;text-decoration:none;font-weight:700;font-size:13px;border-radius:999px;padding:6px 14px}
 .ytsub::before{content:"";width:0;height:0;border-left:8px solid #fff;border-top:5px solid transparent;border-bottom:5px solid transparent}
@@ -1771,7 +1772,7 @@ function speakClick(b){const k=b.dataset.speak;let items=[];
 function gospelText(g,ref){const r=parseRef(ref);if(!r||!GOSP[g])return"";let out=[];
   for(let c=r.c;c<=r.c2;c++){const ch=GOSP[g][c];if(!ch)continue;const v0=c===r.c?r.v:1,v1=c===r.c2?r.v2:999;
     for(let v=v0;v<=v1;v++)if(ch[v])out.push(`[${r.c!==r.c2?c+":":""}${v}]${ch[v]}`);}return out.join(" ");}
-let LDAY=0,LPAR=null,YTAPI=null,YTSEQ=0;
+let LDAY=0,LPAR=null,YTAPI=null,YTSEQ=0,YTBLOCK=false;
 function ytApi(){if(YTAPI)return YTAPI;YTAPI=new Promise((res,rej)=>{if(window.YT&&YT.Player)return res(YT);const prev=window.onYouTubeIframeAPIReady;
   window.onYouTubeIframeAPIReady=()=>{if(prev)try{prev();}catch(e){}res(YT);};const s=document.createElement("script");s.src="https://www.youtube.com/iframe_api";s.onerror=()=>rej();document.head.appendChild(s);});return YTAPI;}
 function titleKey(t){const m=norm(t||"").match(/(mateo|marcos|lucas|juan)\s+(?:juan\s+)?(\d+)\s*,\s*(\d+)/);return m?`${BOOKS_MAP[m[1]]} ${+m[2]} ${+m[3]}`:null;}
@@ -1788,10 +1789,10 @@ async function mountSong(){const slot=document.getElementById("ytslot");if(!slot
   let player,waiter=null;const cued=()=>new Promise(r=>{waiter=r;setTimeout(()=>{if(waiter===r){waiter=null;r();}},2500);});
   let lastErr=null,seen=[];
   player=new Y.Player(slot,{width:"100%",height:"100%",playerVars:{listType:"playlist",list:YTPL,rel:0,playsinline:1,origin:location.origin},
-    events:{onError:e=>{lastErr=e.data;if(msg&&(e.data===153||e.data===152||e.data===150||e.data===101))msg.textContent="YouTube bloqueó el reproductor en esta página (error "+e.data+"). Revisa que tu web no tenga la cabecera «Referrer-Policy: no-referrer»: debe permitir enviar el origen.";},onStateChange:e=>{if(e.data===5&&waiter){const w=waiter;waiter=null;w();}},onReady:async()=>{
-      for(const i of cands){if(seq!==YTSEQ)return;player.cuePlaylist({listType:"playlist",list:YTPL,index:i});await cued();
+    events:{onError:e=>{lastErr=e.data;if(!msg)return;const yl=`<a class="ytopen" href="https://www.youtube.com/playlist?list=${YTPL}" target="_blank" rel="noopener">Escuchar en YouTube</a>`;if(e.data===150||e.data===101){YTBLOCK=true;msg.innerHTML="Estos videos tienen desactivada la opción «Permitir inserción», así que no pueden sonar dentro de otras páginas. Mientras tanto puedes escucharlos en YouTube. "+yl;}else if(e.data===152||e.data===153)msg.innerHTML="YouTube no recibió la dirección de esta página (error "+e.data+"). Revisa que tu web no envíe la cabecera «Referrer-Policy: no-referrer». "+yl;},onStateChange:e=>{if(e.data===5&&waiter){const w=waiter;waiter=null;w();}},onReady:async()=>{
+      for(const i of cands){if(seq!==YTSEQ||YTBLOCK)return;player.cuePlaylist({listType:"playlist",list:YTPL,index:i});await cued();
         const tt=(player.getVideoData()||{}).title||"";if(seen.length<3)seen.push(i+":"+(tt?tt.slice(0,28):"—"));if(titleDate(tt,iso)||(key&&titleKey(tt)===key)){if(msg)msg.textContent="";return;}}
-      if(seq!==YTSEQ)return;player.cuePlaylist({listType:"playlist",list:YTPL,index:0});
+      if(seq!==YTSEQ||YTBLOCK)return;player.cuePlaylist({listType:"playlist",list:YTPL,index:0});
       let n=0;try{n=(player.getPlaylist()||[]).length;}catch(_){}
       if(msg)msg.innerHTML=(pos||back>=0?"No encontramos la canción exacta de este día: puedes buscarla en la lista del reproductor.":"Este Evangelio aún no tiene canción en el canal. Escucha las demás desde la lista del reproductor.")+`<br><small class="ytdiag">Detalle técnico: lista ${n} videos · error ${lastErr??"ninguno"} · títulos leídos ${esc(seen.join(" | ")||"—")}</small>`;}}});}
 const YTCH="https://www.youtube.com/@TuCANCION1";
