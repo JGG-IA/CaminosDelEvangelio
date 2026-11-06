@@ -1894,7 +1894,7 @@ function setJesusAt(p){if(p.stand)jesus.position.set(p.stand[0],p.stand[1],p.sta
 
 // ---------- navegación ----------
 let dwellT=0;
-function go(i,opts={}){
+function go(i,opts={}){if(typeof setOvw==="function")setOvw(false);
   i=clamp(i,0,S.seq.length-1);
   const prev=cur(),next=S.seq[i];
   const from=prev?P[prev.p]:null,to=P[next.p];
@@ -2050,7 +2050,8 @@ $("#speed").onchange=e=>{S.speed=+e.target.value;};
 const ICON_PLAY='<path d="M7 4v16l13-8z"/>',ICON_PAUSE='<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
 function stopPlay(){S.playing=false;$("#playic").innerHTML=ICON_PLAY;$("#play").setAttribute("aria-label","Recorrer");}
 $("#play").onclick=()=>{if(S.playing){stopPlay();return;}S.playing=true;$("#playic").innerHTML=ICON_PAUSE;$("#play").setAttribute("aria-label","Pausar");if(S.i>=S.seq.length-1)go(0);else step(1);dwellT=0;};
-$("#overview").onclick=()=>{flyTo(toX(35.42),0,toZ(32.45),250,1.8);};
+let OVW=false;const setOvw=v=>{OVW=v;$("#overview").textContent=v?"Ver de cerca":"Vista general";$("#overview").setAttribute("aria-pressed",v?"true":"false");};
+$("#overview").onclick=()=>{if(!OVW){flyTo(toX(35.42),0,toZ(32.45),250,1.8);setOvw(true);}else{const ev=S.seq[S.i];if(ev){walk=null;const p=P[ev.p],A=anchor(ev);flyTo(A.x,A.y,A.z,camDistFor(p),1.6,DIO[p.id]?DIRD:null,true);}setOvw(false);}};
 const tog=(btn,key,fn)=>{$(btn).onclick=()=>{S[key]=!S[key];$(btn).setAttribute("aria-pressed",S[key]);fn();};};
 tog("#tRoute","showRoute",()=>{[routeAll,routeDone].forEach(l=>l&&(l.visible=S.showRoute));});
 tog("#tRegions","showRegions",()=>{});
